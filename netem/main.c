@@ -73,16 +73,16 @@ struct queue_pattern {
 };
 
 static const struct queue_pattern patterns[NUM_QUEUES] = {
-	{{ 'G', 'E', 'T', ' ', '/', 'H', 'T', 'T', 'P', '/', '1', '.' }}, // 1
-	{{ 'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ', '2', '0', '0' }}, // 2
-	{{ 'P', 'O', 'S', 'T', ' ', '/', 'H', 'T', 'T', 'P', '/', '1' }}, // 3
-	{{ 'U', 's', 'e', 'r', '-', 'A', 'g', 'e', 'n', 't', ':', ' ' }}, // 4
-	{{ 'A', 'c', 'c', 'e', 'p', 't', '-', 'L', 'a', 'n', 'g', 'u' }}, // 5
-	{{ 'A', 'c', 'c', 'e', 'p', 't', '-', 'E', 'n', 'c', 'o', 'd' }}, // 6
-	{{ 'C', 'o', 'n', 't', 'e', 'n', 't', '-', 'T', 'y', 'p', 'e' }}, // 7
-	{{ 'C', 'o', 'n', 'n', 'e', 'c', 't', 'i', 'o', 'n', ':', ' ' }}, // 8
-	{{ 'S', 'e', 'r', 'v', 'e', 'r', ':', ' ', 'k', 'H', 'T', 'T' }}, // 9
-	{{0}} // Queue 9 (Fallback/Unknown)
+	{{ 'G', 'E', 'T', ' ', '/', '4', 'k', '.', 'h', 't', 'm', 'l' }}, // Queue 0: HTTP GET request
+	{{ 'H', 'T', 'T', 'P', '/', '1', '.', '0', ' ', '2', '0', '0' }}, // Queue 1: HTTP 200 OK response
+	{{ 'A', 'c', 'c', 'e', 'p', 't', ':', ' ', '*', '/', '*', '\r' }}, // Queue 2: Accept header
+	{{ 'U', 's', 'e', 'r', '-', 'A', 'g', 'e', 'n', 't', ':', ' ' }}, // Queue 3: User-Agent header
+	{{ 'A', 'c', 'c', 'e', 'p', 't', '-', 'L', 'a', 'n', 'g', 'u' }}, // Queue 4: Accept-Language header
+	{{ 'A', 'c', 'c', 'e', 'p', 't', '-', 'E', 'n', 'c', 'o', 'd' }}, // Queue 5: Accept-Encoding header
+	{{ 'C', 'o', 'n', 't', 'e', 'n', 't', '-', 'T', 'y', 'p', 'e' }}, // Queue 6: Content-Type header
+	{{ 'C', 'o', 'n', 'n', 'e', 'c', 't', 'i', 'o', 'n', ':', ' ' }}, // Queue 7: Connection header
+	{{ 'S', 'e', 'r', 'v', 'e', 'r', ':', ' ', 'k', 'H', 'T', 'T' }}, // Queue 8: Server header
+	{{0}} // Queue 9: Fallback/Unknown (TCP SYN/ACK/FIN without HTTP payload)
 };
 
 static inline int classify_packet(struct rte_mbuf *m) {
