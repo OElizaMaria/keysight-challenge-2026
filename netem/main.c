@@ -73,16 +73,24 @@ struct queue_pattern {
 };
 
 static const struct queue_pattern patterns[NUM_QUEUES] = {
-	{{ 'G', 'E', 'T', ' ', '/', '4', 'k', '.', 'h', 't', 'm', 'l' }}, // Queue 0: HTTP GET request
-	{{ 'H', 'T', 'T', 'P', '/', '1', '.', '0', ' ', '2', '0', '0' }}, // Queue 1: HTTP 200 OK response
-	{{ 'A', 'c', 'c', 'e', 'p', 't', ':', ' ', '*', '/', '*', '\r' }}, // Queue 2: Accept header
-	{{ 'U', 's', 'e', 'r', '-', 'A', 'g', 'e', 'n', 't', ':', ' ' }}, // Queue 3: User-Agent header
-	{{ 'A', 'c', 'c', 'e', 'p', 't', '-', 'L', 'a', 'n', 'g', 'u' }}, // Queue 4: Accept-Language header
-	{{ 'A', 'c', 'c', 'e', 'p', 't', '-', 'E', 'n', 'c', 'o', 'd' }}, // Queue 5: Accept-Encoding header
-	{{ 'C', 'o', 'n', 't', 'e', 'n', 't', '-', 'T', 'y', 'p', 'e' }}, // Queue 6: Content-Type header
-	{{ 'C', 'o', 'n', 'n', 'e', 'c', 't', 'i', 'o', 'n', ':', ' ' }}, // Queue 7: Connection header
-	{{ 'S', 'e', 'r', 'v', 'e', 'r', ':', ' ', 'k', 'H', 'T', 'T' }}, // Queue 8: Server header
-	{{0}} // Queue 9: Fallback/Unknown (TCP SYN/ACK/FIN without HTTP payload)
+    // === CATEGORIA 1: HTTP Requests (Mesaje de la Client la Server) ===
+    {{ 'G', 'E', 'T', ' ' }},                         // Queue 0: HTTP GET (Cerere de descărcare)
+    {{ 'P', 'O', 'S', 'T', ' ' }},                        // Queue 1: HTTP POST (Trimitere de date/formulare)
+    {{ 'P', 'U', 'T', ' ' }},                         // Queue 2: HTTP PUT (Încărcare de fișiere/update)
+    {{ 'D', 'E', 'L', 'E', 'T', 'E', ' ' }},         // Queue 3: HTTP DELETE (Ștergere resurse)
+
+    // === CATEGORIA 2: HTTP Responses (Răspunsuri de la Server la Client) ===
+    {{ 'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ', '2' }}, // Queue 4: HTTP 2xx (Succes - ex: 200 OK)
+    {{ 'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ', '3' }}, // Queue 5: HTTP 3xx (Redirecționări - ex: 301/302)
+    {{ 'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ', '4' }}, // Queue 6: HTTP 4xx (Erori Client - ex: 404 Not Found)
+    {{ 'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ', '5' }}, // Queue 7: HTTP 5xx (Erori Server - ex: 500 Internal Error)
+
+    // === CATEGORIA 3: TCP Raw Data / Aplicații Custom peste TCP ===
+    // (Aici punem string-uri comune care apar adesea în conexiuni TCP brute de test)
+    {{ 'p', 'i', 'n', 'g', '\n' }},                   // Queue 8: TCP Raw Ping (Mesaje de keep-alive de tip text)
+    
+    // === CATEGORIA 4: Fallback ===
+    {{0}}                                             // Queue 9: Orice alt pachet TCP (inclusiv TCP SYN/ACK/FIN sau payload necunoscut)
 };
 
 static inline int classify_packet(struct rte_mbuf *m) {
