@@ -164,12 +164,20 @@ print_stats(void)
 		   total_packets_dropped);
 		   
 	for (int q = 0; q < NUM_QUEUES; q++) {
-		printf("\nTotal Queue %d hits: %15"PRIu64, q, total_queue_hits[q]);
+		if (q == NUM_QUEUES - 1) {
+			printf("\nTotal Queue %d (Fallback    ) hits: %15"PRIu64, q, total_queue_hits[q]);
+		} else {
+			printf("\nTotal Queue %d (%.*s) hits: %15"PRIu64, q, PATTERN_LEN, patterns[q].bytes, total_queue_hits[q]);
+		}
 	}
 	
 	printf("\n====================================================\n");
 
+
+
 	fflush(stdout);
+
+	
 }
 
 /* main processing loop */
