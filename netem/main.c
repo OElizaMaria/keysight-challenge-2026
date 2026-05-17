@@ -65,11 +65,51 @@ static struct rte_eth_conf port_conf = {
 
 struct rte_mempool * netem_pktmbuf_pool = NULL;
 
+#define NUM_QUEUES 10
+#define PATTERN_LEN 12
+
+struct queue_pattern {
+	uint8_t bytes[PATTERN_LEN];
+};
+
+static const struct queue_pattern patterns[NUM_QUEUES] = {
+	{{ 'G', 'E', 'T', ' ', '/', 'H', 'T', 'T', 'P', '/', '1', '.' }}, // 1
+	{{ 'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ', '2', '0', '0' }}, // 2
+	{{ 'P', 'O', 'S', 'T', ' ', '/', 'H', 'T', 'T', 'P', '/', '1' }}, // 3
+	{{ 'U', 's', 'e', 'r', '-', 'A', 'g', 'e', 'n', 't', ':', ' ' }}, // 4
+	{{ 'A', 'c', 'c', 'e', 'p', 't', '-', 'L', 'a', 'n', 'g', 'u' }}, // 5
+	{{ 'A', 'c', 'c', 'e', 'p', 't', '-', 'E', 'n', 'c', 'o', 'd' }}, // 6
+	{{ 'C', 'o', 'n', 't', 'e', 'n', 't', '-', 'T', 'y', 'p', 'e' }}, // 7
+	{{ 'C', 'o', 'n', 'n', 'e', 'c', 't', 'i', 'o', 'n', ':', ' ' }}, // 8
+	{{ 'S', 'e', 'r', 'v', 'e', 'r', ':', ' ', 'k', 'H', 'T', 'T' }}, // 9
+	{{0}} // Queue 9 (Fallback/Unknown)
+};
+
+static inline int classify_packet(struct rte_mbuf *m) {
+	const uint8_t *data = rte_pktmbuf_mtod(m, const uint8_t *);
+	uint32_t len = rte_pktmbuf_data_len(m);
+	
+	if (len < PATTERN_LEN) return NUM_QUEUES - 1; // Default to last queue if too small
+
+	for (int q = 0; q < NUM_QUEUES - 1; q++) {
+		// Skip empty patterns
+		if (patterns[q].bytes[0] == 0) continue; 
+		
+		for (uint32_t i = 0; i <= len - PATTERN_LEN; i++) {
+			if (memcmp(&data[i], patterns[q].bytes, PATTERN_LEN) == 0) {
+				return q; // Found a match!
+			}
+		}
+	}
+	return NUM_QUEUES - 1; // Default fallback queue
+}
+
 /* Per-port statistics struct */
 struct __rte_cache_aligned netem_port_statistics {
 	uint64_t tx;
 	uint64_t rx;
 	uint64_t dropped;
+	uint64_t queue_hits[NUM_QUEUES];
 };
 struct netem_port_statistics port_statistics[NB_PORTS];
 
@@ -81,6 +121,7 @@ static void
 print_stats(void)
 {
 	uint64_t total_packets_dropped, total_packets_tx, total_packets_rx;
+	uint64_t total_queue_hits[NUM_QUEUES] = {0};
 	unsigned portid;
 
 	total_packets_dropped = 0;
@@ -105,6 +146,11 @@ print_stats(void)
 			   port_statistics[portid].rx,
 			   port_statistics[portid].dropped);
 
+		for (int q = 0; q < NUM_QUEUES; q++) {
+			printf("\n  Queue %d hits: %20"PRIu64, q, port_statistics[portid].queue_hits[q]);
+			total_queue_hits[q] += port_statistics[portid].queue_hits[q];
+		}
+
 		total_packets_dropped += port_statistics[portid].dropped;
 		total_packets_tx += port_statistics[portid].tx;
 		total_packets_rx += port_statistics[portid].rx;
@@ -116,6 +162,11 @@ print_stats(void)
 		   total_packets_tx,
 		   total_packets_rx,
 		   total_packets_dropped);
+		   
+	for (int q = 0; q < NUM_QUEUES; q++) {
+		printf("\nTotal Queue %d hits: %15"PRIu64, q, total_queue_hits[q]);
+	}
+	
 	printf("\n====================================================\n");
 
 	fflush(stdout);
@@ -190,15 +241,23 @@ netem_main_loop(void)
 		}
 
 		/* Read packet from RX queue */
-		nb_rx = rte_eth_rx_burst(rx_port_id, 0, pkts_burst, MAX_PKT_BURST);
+		nb_rx = rte_eth_rx_burst(rx_port_id, 0, pkts_burst, MAX_PKT_BURST); 	//aici le citeste!!! (cate un burst ))
 		if (unlikely(nb_rx == 0))
 			/*  Nothing received? Continue. */
 			continue;
 
 		port_statistics[rx_port_id].rx += nb_rx;
 
+		
+
+
 		for (i = 0; i < nb_rx; i++) {
 			m = pkts_burst[i];
+
+///////////////////////////////////////////// De revenit aici //////////////////////////////////////
+
+			int queue_id = classify_packet(m);
+			port_statistics[rx_port_id].queue_hits[queue_id]++;
 
 			/* Drop one in 10 packets, the 5th one. */
 			if (i % 10 == 5) {
